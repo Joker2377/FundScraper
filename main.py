@@ -11,6 +11,7 @@ class NetProcess:
         self.url = url
         self.driver = webdriver.Edge()
         self.driver.get(self.url)
+        print("---Waiting---")
         time.sleep(10)
 
     def returnElements(self):
@@ -33,7 +34,7 @@ class NetProcess:
         return funds
 
     def escape(self):
-        for x in range(3):
+        for x in range(5):
             webdriver.ActionChains(self.driver).move_by_offset(0, 0).click().perform()
 
     def nextPage(self):
@@ -59,7 +60,7 @@ class Fund:
         print(self.id, self.name)
 
 
-net = NetProcess("https://www.fundrich.com.tw/new-theme-fund/root.HOT.hot13")
+net = NetProcess("https://www.fundrich.com.tw/new-theme-fund/")
 funds = net.fundsList()
 net.nextPage()
 
@@ -71,11 +72,15 @@ while funds:
     print(f"time passed: {round(time.time() - start)}")
     funds = []
     funds = net.fundsList()
-    if oldFunds == funds:
+    if not funds:
         break
-    time.sleep(0.4)
+    if oldFunds == funds:
+        continue
+    for fund in funds:
+        print(fund[0], fund[1])
+    time.sleep(0.5)
     print("---Processing---")
-    time.sleep(0.3)
+    time.sleep(0.5)
     net.escape()
     oldFunds = funds
     net.nextPage()
@@ -90,6 +95,5 @@ for fund in fundList:
 
 for x in FundList:
     x.show()
-
-input("Press any key to leave")
-print('\n')
+print(f"Total: {len(FundList)}")
+input("---Scrape Finished---")
