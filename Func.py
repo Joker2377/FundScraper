@@ -27,12 +27,12 @@ class FundListNetProcess:
         print("---Waiting---")
         time.sleep(10)
 
-    def returnElements(self):
+    def returnElement(self):
         element = self.driver.find_element(By.CLASS_NAME, 'tbody')
         return element
 
     def getFundInfo(self):
-        element = self.returnElements()
+        element = self.returnElement()
         result = element.text
         str = result.split('立即結帳')
         funds = []
@@ -84,6 +84,34 @@ class FundDetailNetProcess:
         href = [elem.get_attribute('href') for elem in elements]
         return href
 
+    def returnPage2Elements(self):
+        element = self.driver.find_element(By.XPATH, "//span[text()='淨值走勢']")
+        element.click()
+        dateElements = self.driver.find_elements(By.XPATH,
+                                                 "//td[@style='padding: 3px; height: 48px; text-align: center; "
+                                                 "font-size: 14px; overflow: hidden; white-space: inherit; "
+                                                 "text-overflow: inherit; background-color: rgb(240, 240, "
+                                                 "237); word-break: break-all; font-weight: 500; line-height: "
+                                                 "2.95; letter-spacing: 0.7px; color: rgb(119, 119, 119);']")
+        valueElements = self.driver.find_elements(By.XPATH, "//td[@style='padding: 3px; height: 48px; text-align: "
+                                                            "center; font-size: 14px; overflow: hidden; white-space: "
+                                                            "inherit; text-overflow: inherit; background-color: "
+                                                            "inherit; word-break: break-all; font-weight: 500; "
+                                                            "line-height: 2.95; letter-spacing: 0.7px; color: rgb("
+                                                            "119, 119, 119);']")
+        return zip(dateElements, valueElements)
+
+    def returnPage3Elements(self):
+        element = self.driver.find_element(By.XPATH, "//span[text()='資產配置']")
+        element.click()
+        elements1 = self.driver.find_elements(By.XPATH, "//*[@text-anchor='end']")
+        elements2 = self.driver.find_elements(By.XPATH, "//*[@style='background-color: rgb(255, 255, 255); padding: "
+                                                        "0px 24px; width: 100%; border-collapse: collapse; "
+                                                        "border-spacing: 0px; table-layout: fixed; font-family: "
+                                                        "微軟正黑體, \"Microsoft JhengHei\", SimHei, 新細明體, Arial, "
+                                                        "Verdana, Helvetica, sans-serif;']")
+        return [elements1, elements2]
+
     def getFundDetail(self):
         elements = self.returnPage1Element()
         infoList = []
@@ -94,6 +122,35 @@ class FundDetailNetProcess:
         print(color.GREEN + "---Data received---" + color.END + infoList[0])
         infoList += self.returnPage1Href()
         return infoList
+
+    def getFundValueList(self):
+        data = self.returnPage2Elements()
+        dateList = []
+        valueList = []
+        for elem1, elem2 in data:
+            dateList.append(str(elem1.text))
+            valueList.append(str(elem2.text))
+        c = list(zip(dateList, valueList))
+        return c
+
+    def getFundConfigure(self):
+        data = self.returnPage3Elements()
+        confList = []
+        dataList = []
+        for x in data[0]:
+            confList.append(str(x.text))
+        for x in data[1]:
+            if x.text != '':
+                s = x.text.split()
+                dataList.append(s)
+
+        return [confList, dataList]  # *****FundDetailScraper, main.py尚未增加功能*****
+
+    def getFundRisk(self):
+        pass
+
+    def getFundDividend(self):
+        pass
 
     def escape(self):
         for x in range(5):
@@ -108,16 +165,20 @@ class FundInfo:
         self.id = args[0]
         self.name = args[1]
         self.info = []
+        self.valueList = []
         for x in args:
             self.info.append(x)
         self.info = self.info[2::]
 
     def show(self):
-        print(self.id, self.name, self.info)
+        print(self.id, self.name, self.info, self.valueList)
 
-    def add(self, *args):
+    def addInfo(self, *args):
         for x in args:
             self.info.append(x)
+
+    def setValueList(self, listOfValue: list):
+        self.valueList = listOfValue
 
     def getId(self):
         return self.id
@@ -179,6 +240,7 @@ class FundDetailScraper:
         self.id = id
         self.infoUrl = f"https://www.fundrich.com.tw/fund/{self.id}.html?id={self.id}#%E5%9F%BA%E9%87%91%E8%B3%87%E6%96%99"
         self.infoList = []
+        self.valueList = []
         self.net = FundDetailNetProcess(self.infoUrl)
 
     def setTargetFund(self, id):
@@ -191,10 +253,16 @@ class FundDetailScraper:
         self.net.setTarget(self.infoUrl)
         infoList = self.net.getFundDetail()
         self.net.escape()
+        valueList = self.net.getFundValueList()
+        self.net.escape()
         self.infoList = infoList
+        self.valueList = valueList
 
     def getInfoList(self):
         return self.infoList
+
+    def getValueList(self):
+        return self.valueList
 
     def close(self):
         self.net.close()

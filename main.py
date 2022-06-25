@@ -11,8 +11,10 @@ for x in fundList:
     f2.setTargetFund(id)
     f2.start()
     infoList = f2.getInfoList()
+    valueList = f2.getValueList()
+    x.setValueList(valueList)
     for info in infoList:
-        x.add(info)
+        x.addInfo(info)
 
 for x in fundList:
     print(x.show())
