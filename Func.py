@@ -75,16 +75,16 @@ class FundDetailNetProcess:
         self.url = url
         self.driver.get(url)
 
-    def returnPage1Element(self):
+    def returnPage1Element(self):  # 基金資料
         element = self.driver.find_elements(By.CLASS_NAME, 'col-sm-8')
         return element
 
-    def returnPage1Href(self):
+    def returnPage1Href(self):  # 公司網址
         elements = self.driver.find_elements(By.CSS_SELECTOR, 'td > a')
         href = [elem.get_attribute('href') for elem in elements]
         return href
 
-    def returnPage2Elements(self):
+    def returnPage2Elements(self):  # 淨值表
         element = self.driver.find_element(By.XPATH, "//span[text()='淨值走勢']")
         element.click()
         dateElements = self.driver.find_elements(By.XPATH,
@@ -101,7 +101,7 @@ class FundDetailNetProcess:
                                                             "119, 119, 119);']")
         return zip(dateElements, valueElements)
 
-    def returnPage3Elements(self):
+    def returnPage3Elements(self):  # 資產配置
         element = self.driver.find_element(By.XPATH, "//span[text()='資產配置']")
         element.click()
         elements1 = self.driver.find_elements(By.XPATH, "//*[@text-anchor='end']")
@@ -110,7 +110,7 @@ class FundDetailNetProcess:
                                                         "border-spacing: 0px; table-layout: fixed; font-family: "
                                                         "微軟正黑體, \"Microsoft JhengHei\", SimHei, 新細明體, Arial, "
                                                         "Verdana, Helvetica, sans-serif;']")
-        return [elements1, elements2]
+        return [elements1, elements2]  # 資產配置(股票現金占比)/資產配置頁的其他東西
 
     def getFundDetail(self):
         elements = self.returnPage1Element()
@@ -119,7 +119,6 @@ class FundDetailNetProcess:
             str = x.text.split('\n')
             infoList += str
         infoList = infoList[:-7:]
-        print(color.GREEN + "---Data received---" + color.END + infoList[0])
         infoList += self.returnPage1Href()
         return infoList
 
@@ -138,13 +137,57 @@ class FundDetailNetProcess:
         confList = []
         dataList = []
         for x in data[0]:
-            confList.append(str(x.text))
+            tmp = x.text.split()
+            c = tuple([tmp[0], tmp[1]])
+            confList.append(c)
         for x in data[1]:
             if x.text != '':
-                s = x.text.split()
+                s = x.text.split('\n')
                 dataList.append(s)
-
-        return [confList, dataList]  # *****FundDetailScraper, main.py尚未增加功能*****
+        newDataList = []
+        lst = []
+        for x in dataList[0]:
+            if dataList[0].index(x) > 0:
+                tmp = x.split()
+                value = tmp[-1]
+                tmp = tmp[:-1:]
+                str1 = ""
+                for y in tmp:
+                    str1 += y + " "
+                c = tuple([str1, value])
+                lst.append(c)
+            else:
+                c = tuple(x.split())
+                lst.append(c)
+        newDataList.append(lst)
+        lst = []
+        for x in dataList[1]:
+            if dataList[1].index(x) > 0:
+                tmp = x.split()
+                unit = tmp[0]
+                value = tmp[1::]
+                c = tuple([unit, value])
+                lst.append(c)
+            else:
+                c = tuple(x.split())
+                lst.append(c)
+        newDataList.append(lst)
+        lst = []
+        for x in dataList[2]:
+            if dataList[2].index(x) > 0:
+                tmp = x.split()
+                value = tmp[-1]
+                tmp = tmp[:-1:]
+                str1 = ""
+                for y in tmp:
+                    str1 += y + " "
+                c = tuple([str1, value])
+                lst.append(c)
+            else:
+                c = tuple(x.split())
+                lst.append(c)
+        newDataList.append(lst)
+        return [confList, newDataList]
 
     def getFundRisk(self):
         pass
@@ -153,7 +196,7 @@ class FundDetailNetProcess:
         pass
 
     def escape(self):
-        for x in range(5):
+        for x in range(2):
             webdriver.ActionChains(self.driver).move_by_offset(0, 0).click().perform()
 
     def close(self):
@@ -166,12 +209,15 @@ class FundInfo:
         self.name = args[1]
         self.info = []
         self.valueList = []
+        self.confList = []
+        self.dataList = []
         for x in args:
             self.info.append(x)
         self.info = self.info[2::]
 
     def show(self):
-        print(self.id, self.name, self.info, self.valueList)
+        print(color.CYAN+self.id+self.name+color.END)
+        print(self.info, self.valueList, self.confList, self.dataList)
 
     def addInfo(self, *args):
         for x in args:
@@ -179,6 +225,12 @@ class FundInfo:
 
     def setValueList(self, listOfValue: list):
         self.valueList = listOfValue
+
+    def setConfList(self, confList):
+        self.confList = confList
+
+    def setDataList(self, dataList):
+        self.dataList = dataList
 
     def getId(self):
         return self.id
@@ -241,6 +293,8 @@ class FundDetailScraper:
         self.infoUrl = f"https://www.fundrich.com.tw/fund/{self.id}.html?id={self.id}#%E5%9F%BA%E9%87%91%E8%B3%87%E6%96%99"
         self.infoList = []
         self.valueList = []
+        self.confList = []
+        self.dataList = []
         self.net = FundDetailNetProcess(self.infoUrl)
 
     def setTargetFund(self, id):
@@ -251,18 +305,30 @@ class FundDetailScraper:
         if self.id is None:
             raise ValueError("Invalid ID")
         self.net.setTarget(self.infoUrl)
+        self.net.escape()
         infoList = self.net.getFundDetail()
         self.net.escape()
         valueList = self.net.getFundValueList()
         self.net.escape()
+        confData = self.net.getFundConfigure()
+        self.net.escape()
         self.infoList = infoList
         self.valueList = valueList
+        self.confList = confData[0]
+        self.dataList = confData[1]
+        print(color.GREEN + "---Data received---" + color.END + infoList[0])
 
     def getInfoList(self):
         return self.infoList
 
     def getValueList(self):
         return self.valueList
+
+    def getConflist(self):
+        return self.confList
+
+    def getDataList(self):
+        return self.dataList
 
     def close(self):
         self.net.close()
