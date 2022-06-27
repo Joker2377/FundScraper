@@ -14,9 +14,13 @@ for x in fundList:
     valueList = f2.getValueList()
     confList = f2.getConflist()
     dataList = f2.getDataList()
+    risk = f2.getRisk()
+    dividend = f2.getDividend()
     x.setValueList(valueList)
     x.setConfList(confList)
     x.setDataList(dataList)
+    x.setRisk(risk)
+    x.setDividend(dividend)
     for info in infoList:
         x.addInfo(info)
 

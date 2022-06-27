@@ -112,6 +112,17 @@ class FundDetailNetProcess:
                                                         "Verdana, Helvetica, sans-serif;']")
         return [elements1, elements2]  # 資產配置(股票現金占比)/資產配置頁的其他東西
 
+    def returnPage4Elements(self):  # 風險評等
+        self.driver.find_element(By.XPATH, "//span[text()='風險評等']").click()
+        element = self.driver.find_element(By.XPATH, "//*[@style='margin: 5px 0px; text-align: center; font-size: "
+                                                     "18px; font-weight: 500; line-height: 1.67;']")
+        return element
+
+    def returnPage5elements(self):  # 配息紀錄
+        self.driver.find_element(By.XPATH, "//span[text()='配息紀錄']").click()
+        element = self.driver.find_element(By.XPATH, "//*[contains(text(), '無配息資料')]")
+        return element
+
     def getFundDetail(self):
         elements = self.returnPage1Element()
         infoList = []
@@ -190,10 +201,30 @@ class FundDetailNetProcess:
         return [confList, newDataList]
 
     def getFundRisk(self):
-        pass
+        element = self.returnPage4Elements()
+        return element.text
 
     def getFundDividend(self):
-        pass
+        element = self.returnPage5elements()
+        if element.get_attribute('style') == 'display: none;':
+            elements = self.driver.find_elements(By.XPATH,
+                                                 "//*[@style='background-color: rgb(255, 255, 255); padding: 0px "
+                                                 "24px; width: 100%; border-collapse: collapse; border-spacing: 0px; "
+                                                 "table-layout: fixed; font-family: 微軟正黑體, \"Microsoft JhengHei\", "
+                                                 "SimHei, 新細明體, Arial, Verdana, Helvetica, sans-serif;']")
+            b = None
+            for elem in elements:
+                a = elem.text.split('\n')
+                b = []
+                for item in a:
+                    c = item.split()
+                    if c:
+                        c = tuple(c)
+                        b.append(c)
+
+            return b
+        else:
+            return '無配息資料'
 
     def escape(self):
         for x in range(2):
@@ -211,13 +242,35 @@ class FundInfo:
         self.valueList = []
         self.confList = []
         self.dataList = []
+        self.risk = None
+        self.dividend = None
         for x in args:
             self.info.append(x)
         self.info = self.info[2::]
 
     def show(self):
-        print(color.CYAN+self.id+self.name+color.END)
-        print(self.info, self.valueList, self.confList, self.dataList)
+        print(color.CYAN + self.id + self.name + color.END)
+        print(color.PURPLE+"Info:"+color.END)
+        for x in self.info:
+            print(x)
+        print(color.PURPLE+"Value List:"+color.END)
+        for x in self.valueList:
+            print(x)
+        print(color.PURPLE + "Configure List:" + color.END)
+        for x in self.confList:
+            print(x)
+        print(color.PURPLE + "Data List:" + color.END)
+        for x in self.dataList:
+            print(x)
+        print(color.PURPLE + "Risk:" + color.END)
+        print(self.risk)
+        print(color.PURPLE + "Dividend:" + color.END)
+        if isinstance(self.dividend, str):
+            print(self.dividend)
+        else:
+            for x in self.dividend:
+                print(x)
+        print('-----------------------------------------------------------')
 
     def addInfo(self, *args):
         for x in args:
@@ -231,6 +284,12 @@ class FundInfo:
 
     def setDataList(self, dataList):
         self.dataList = dataList
+
+    def setRisk(self, risk):
+        self.risk = risk
+
+    def setDividend(self, dividend):
+        self.dividend = dividend
 
     def getId(self):
         return self.id
@@ -291,10 +350,12 @@ class FundDetailScraper:
     def __init__(self, id):
         self.id = id
         self.infoUrl = f"https://www.fundrich.com.tw/fund/{self.id}.html?id={self.id}#%E5%9F%BA%E9%87%91%E8%B3%87%E6%96%99"
-        self.infoList = []
-        self.valueList = []
-        self.confList = []
-        self.dataList = []
+        self.infoList = []  # 基金資料
+        self.valueList = []  # 近30日淨值表
+        self.confList = []  # 資產配置
+        self.dataList = []  # 行業比重、風險評估、前十大持股
+        self.risk = None
+        self.dividend = None
         self.net = FundDetailNetProcess(self.infoUrl)
 
     def setTargetFund(self, id):
@@ -309,13 +370,17 @@ class FundDetailScraper:
         infoList = self.net.getFundDetail()
         self.net.escape()
         valueList = self.net.getFundValueList()
-        self.net.escape()
         confData = self.net.getFundConfigure()
+        self.net.escape()
+        risk = self.net.getFundRisk()
+        dividendData = self.net.getFundDividend()
         self.net.escape()
         self.infoList = infoList
         self.valueList = valueList
         self.confList = confData[0]
         self.dataList = confData[1]
+        self.risk = risk
+        self.dividend = dividendData
         print(color.GREEN + "---Data received---" + color.END + infoList[0])
 
     def getInfoList(self):
@@ -329,6 +394,12 @@ class FundDetailScraper:
 
     def getDataList(self):
         return self.dataList
+
+    def getRisk(self):
+        return self.risk
+
+    def getDividend(self):
+        return self.dividend
 
     def close(self):
         self.net.close()
