@@ -6,7 +6,7 @@ from os import system
 import time
 
 
-class color:
+class color:  # text colors
     PURPLE = '\033[95m'
     CYAN = '\033[96m'
     DARKCYAN = '\033[36m'
@@ -27,12 +27,8 @@ class FundListNetProcess:
         print("---Waiting---")
         time.sleep(10)
 
-    def returnElement(self):
+    def getFundInfo(self):  # 取得清單上的基金資料(代碼、基金名稱；三個月、六個月、一年、二年、三年、五年、成立至今等績效)
         element = self.driver.find_element(By.CLASS_NAME, 'tbody')
-        return element
-
-    def getFundInfo(self):
-        element = self.returnElement()
         result = element.text
         str = result.split('立即結帳')
         funds = []
@@ -46,11 +42,11 @@ class FundListNetProcess:
         funds = funds[:-1:]
         return funds
 
-    def escape(self):
+    def escape(self):  # 避免廣告視窗干擾運作
         for x in range(5):
             webdriver.ActionChains(self.driver).move_by_offset(0, 0).click().perform()
 
-    def nextPage(self):
+    def nextPage(self):  # 下一頁
         element = self.driver.find_element(By.CLASS_NAME, "btn-next")
         element.click()
         if element.is_enabled():
@@ -58,7 +54,7 @@ class FundListNetProcess:
         else:
             return False
 
-    def close(self):
+    def close(self):  # 關閉瀏覽器視窗
         self.driver.close()
 
 
@@ -75,18 +71,23 @@ class FundDetailNetProcess:
         self.url = url
         self.driver.get(url)
 
-    def returnPage1Element(self):  # 基金資料
-        element = self.driver.find_elements(By.CLASS_NAME, 'col-sm-8')
-        return element
+    def getFundDetail(self):  # 基金資料
+        elements = self.driver.find_elements(By.CLASS_NAME, 'col-sm-8')
 
-    def returnPage1Href(self):  # 公司網址
-        elements = self.driver.find_elements(By.CSS_SELECTOR, 'td > a')
+        infoList = []
+        for x in elements:
+            str = x.text.split('\n')
+            infoList += str
+        infoList = infoList[:-7:]
+
+        elements = self.driver.find_elements(By.CSS_SELECTOR, 'td > a')  # 公司網址
         href = [elem.get_attribute('href') for elem in elements]
-        return href
 
-    def returnPage2Elements(self):  # 淨值表
-        element = self.driver.find_element(By.XPATH, "//span[text()='淨值走勢']")
-        element.click()
+        infoList += href
+        return infoList
+
+    def getFundValueList(self):  # 淨值表
+        self.driver.find_element(By.XPATH, "//span[text()='淨值走勢']").click()
         dateElements = self.driver.find_elements(By.XPATH,
                                                  "//td[@style='padding: 3px; height: 48px; text-align: center; "
                                                  "font-size: 14px; overflow: hidden; white-space: inherit; "
@@ -99,52 +100,24 @@ class FundDetailNetProcess:
                                                             "inherit; word-break: break-all; font-weight: 500; "
                                                             "line-height: 2.95; letter-spacing: 0.7px; color: rgb("
                                                             "119, 119, 119);']")
-        return zip(dateElements, valueElements)
+        dateList = []
+        valueList = []
+        for x in dateElements:
+            dateList.append(str(x.text))
+        for x in valueElements:
+            valueList.append(str(x.text))
+        c = list(zip(dateList, valueList))
+        return c
 
-    def returnPage3Elements(self):  # 資產配置
-        element = self.driver.find_element(By.XPATH, "//span[text()='資產配置']")
-        element.click()
+    def getFundConfigure(self):  # 資產配置
+        self.driver.find_element(By.XPATH, "//span[text()='資產配置']").click()
         elements1 = self.driver.find_elements(By.XPATH, "//*[@text-anchor='end']")
         elements2 = self.driver.find_elements(By.XPATH, "//*[@style='background-color: rgb(255, 255, 255); padding: "
                                                         "0px 24px; width: 100%; border-collapse: collapse; "
                                                         "border-spacing: 0px; table-layout: fixed; font-family: "
                                                         "微軟正黑體, \"Microsoft JhengHei\", SimHei, 新細明體, Arial, "
                                                         "Verdana, Helvetica, sans-serif;']")
-        return [elements1, elements2]  # 資產配置(股票現金占比)/資產配置頁的其他東西
-
-    def returnPage4Elements(self):  # 風險評等
-        self.driver.find_element(By.XPATH, "//span[text()='風險評等']").click()
-        element = self.driver.find_element(By.XPATH, "//*[@style='margin: 5px 0px; text-align: center; font-size: "
-                                                     "18px; font-weight: 500; line-height: 1.67;']")
-        return element
-
-    def returnPage5elements(self):  # 配息紀錄
-        self.driver.find_element(By.XPATH, "//span[text()='配息紀錄']").click()
-        element = self.driver.find_element(By.XPATH, "//*[contains(text(), '無配息資料')]")
-        return element
-
-    def getFundDetail(self):
-        elements = self.returnPage1Element()
-        infoList = []
-        for x in elements:
-            str = x.text.split('\n')
-            infoList += str
-        infoList = infoList[:-7:]
-        infoList += self.returnPage1Href()
-        return infoList
-
-    def getFundValueList(self):
-        data = self.returnPage2Elements()
-        dateList = []
-        valueList = []
-        for elem1, elem2 in data:
-            dateList.append(str(elem1.text))
-            valueList.append(str(elem2.text))
-        c = list(zip(dateList, valueList))
-        return c
-
-    def getFundConfigure(self):
-        data = self.returnPage3Elements()
+        data = [elements1, elements2]  # 資產配置(股票現金占比)/資產配置頁的其他東西
         confList = []
         dataList = []
         for x in data[0]:
@@ -200,12 +173,15 @@ class FundDetailNetProcess:
         newDataList.append(lst)
         return [confList, newDataList]
 
-    def getFundRisk(self):
-        element = self.returnPage4Elements()
+    def getFundRisk(self):  # 風險評等
+        self.driver.find_element(By.XPATH, "//span[text()='風險評等']").click()
+        element = self.driver.find_element(By.XPATH, "//*[@style='margin: 5px 0px; text-align: center; font-size: "
+                                                     "18px; font-weight: 500; line-height: 1.67;']")
         return element.text
 
-    def getFundDividend(self):
-        element = self.returnPage5elements()
+    def getFundDividend(self):  # 配息紀錄
+        self.driver.find_element(By.XPATH, "//span[text()='配息紀錄']").click()
+        element = self.driver.find_element(By.XPATH, "//*[contains(text(), '無配息資料')]")
         if element.get_attribute('style') == 'display: none;':
             elements = self.driver.find_elements(By.XPATH,
                                                  "//*[@style='background-color: rgb(255, 255, 255); padding: 0px "
@@ -250,20 +226,25 @@ class FundInfo:
 
     def show(self):
         print(color.CYAN + self.id + self.name + color.END)
-        print(color.PURPLE+"Info:"+color.END)
+        print(color.PURPLE + "Info:" + color.END)
         for x in self.info:
             print(x)
-        print(color.PURPLE+"Value List:"+color.END)
+        print('\n\n')
+        print(color.PURPLE + "Value List:" + color.END)
         for x in self.valueList:
             print(x)
+        print('\n\n')
         print(color.PURPLE + "Configure List:" + color.END)
         for x in self.confList:
             print(x)
+        print('\n\n')
         print(color.PURPLE + "Data List:" + color.END)
         for x in self.dataList:
             print(x)
+        print('\n\n')
         print(color.PURPLE + "Risk:" + color.END)
         print(self.risk)
+        print('\n\n')
         print(color.PURPLE + "Dividend:" + color.END)
         if isinstance(self.dividend, str):
             print(self.dividend)
@@ -322,10 +303,9 @@ class FundListScraper:
             if oldFunds == funds:
                 continue
             for fund in funds:
-                print(fund[0], fund[1])
-            time.sleep(0.5)
+                print(f"{funds.index(fund) + 1}. {fund[0]} {fund[1]}")
             print(color.BOLD + "---Processing---" + color.END)
-            time.sleep(0.5)
+            time.sleep(1)
             net.escape()
             oldFunds = funds
             fundList = fundList + funds
@@ -354,8 +334,8 @@ class FundDetailScraper:
         self.valueList = []  # 近30日淨值表
         self.confList = []  # 資產配置
         self.dataList = []  # 行業比重、風險評估、前十大持股
-        self.risk = None
-        self.dividend = None
+        self.risk = None  # 風險評等
+        self.dividend = None  # 配息紀錄
         self.net = FundDetailNetProcess(self.infoUrl)
 
     def setTargetFund(self, id):
@@ -403,3 +383,35 @@ class FundDetailScraper:
 
     def close(self):
         self.net.close()
+
+
+if __name__ == '__main__':
+    f1 = FundListScraper()
+    f1.setTargetUrl("https://www.fundrich.com.tw/new-theme-fund/root.HOT.hot006")
+    f1.start()
+
+    fundList = f1.getFundList()
+    f2 = FundDetailScraper(fundList[0].getId())
+    for x in fundList:
+        id = x.getId()
+        f2.setTargetFund(id)
+        f2.start()
+
+        infoList = f2.getInfoList()
+        valueList = f2.getValueList()
+        confList = f2.getConflist()
+        dataList = f2.getDataList()
+        risk = f2.getRisk()
+        dividend = f2.getDividend()
+
+        x.setValueList(valueList)
+        x.setConfList(confList)
+        x.setDataList(dataList)
+        x.setRisk(risk)
+        x.setDividend(dividend)
+        for info in infoList:
+            x.addInfo(info)
+
+    for x in fundList:
+        print(x.show())
+    input(color.RED + "stop" + color.END)
