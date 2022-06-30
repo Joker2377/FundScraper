@@ -1,9 +1,11 @@
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select
-from os import system
 import time
+from os import system
+
+import selenium
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 
 class color:  # text colors
@@ -24,35 +26,67 @@ class FundListNetProcess:
         self.url = url
         self.driver = webdriver.Edge()
         self.driver.get(self.url)
-        print("---Waiting---")
-        time.sleep(10)
 
     def getFundInfo(self):  # 取得清單上的基金資料(代碼、基金名稱；三個月、六個月、一年、二年、三年、五年、成立至今等績效)
-        element = self.driver.find_element(By.CLASS_NAME, 'tbody')
-        result = element.text
-        str = result.split('立即結帳')
-        funds = []
-        for x in str:
-            s = x.split('\n')
-            newS = []
-            for y in s:
-                if y != '':
-                    newS.append(y)
-            funds.append(newS)
-        funds = funds[:-1:]
-        return funds
+        while True:
+            try:
+                wait = WebDriverWait(self.driver, 5)
+                wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'tbody')))
+                element = self.driver.find_element(By.CLASS_NAME, 'tbody')
+                result = element.text
+                str = result.split('立即結帳')
+                funds = []
+                for x in str:
+                    s = x.split('\n')
+                    newS = []
+                    for y in s:
+                        if y != '':
+                            newS.append(y)
+                    funds.append(newS)
+                funds = funds[:-1:]
+                if not funds:
+                    continue
+                return funds
+            except selenium.common.exceptions.NoSuchElementException:
+                self.escape()  # 關閉廣告
+                print(color.RED + '---Waiting---' + color.END)
+                time.sleep(1)
+                self.driver.refresh()
+                continue
+            except selenium.common.exceptions.TimeoutException:
+                self.escape()
+                self.driver.refresh()
+                continue
 
     def escape(self):  # 避免廣告視窗干擾運作
-        for x in range(5):
+        for x in range(3):
             webdriver.ActionChains(self.driver).move_by_offset(0, 0).click().perform()
 
     def nextPage(self):  # 下一頁
-        element = self.driver.find_element(By.CLASS_NAME, "btn-next")
-        element.click()
-        if element.is_enabled():
-            return True
-        else:
-            return False
+        times = 0
+        while True:
+            try:
+                time.sleep(1)
+                wait = WebDriverWait(self.driver, 5)
+                btn = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "btn-next")))
+                btn.click()
+                element = self.driver.find_element(By.CLASS_NAME, "btn-next")
+                times = 0
+                if element.is_enabled():
+                    return True
+                else:
+                    return False
+            except selenium.common.exceptions.ElementClickInterceptedException:
+                print(color.RED + '---Waiting---' + color.END)
+                times += 1
+                if times > 5:
+                    self.escape()
+                continue
+            except selenium.common.exceptions.TimeoutException:
+                self.driver.refresh()
+                print(color.RED + '---Waiting---' + color.END)
+                time.sleep(3)
+                continue
 
     def close(self):  # 關閉瀏覽器視窗
         self.driver.close()
@@ -72,135 +106,216 @@ class FundDetailNetProcess:
         self.driver.get(url)
 
     def getFundDetail(self):  # 基金資料
-        elements = self.driver.find_elements(By.CLASS_NAME, 'col-sm-8')
+        while True:
+            try:
+                time.sleep(0.5)
+                wait = WebDriverWait(self.driver, 5)
+                wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'col-sm-8')))
+                elements = self.driver.find_elements(By.CLASS_NAME, 'col-sm-8')
 
-        infoList = []
-        for x in elements:
-            str = x.text.split('\n')
-            infoList += str
-        infoList = infoList[:-7:]
+                infoList = []
+                for x in elements:
+                    str = x.text.split('\n')
+                    infoList += str
+                infoList = infoList[:-7:]
 
-        elements = self.driver.find_elements(By.CSS_SELECTOR, 'td > a')  # 公司網址
-        href = [elem.get_attribute('href') for elem in elements]
+                elements = self.driver.find_elements(By.CSS_SELECTOR, 'td > a')  # 公司網址
+                href = [elem.get_attribute('href') for elem in elements]
 
-        infoList += href
-        return infoList
+                infoList += href
+                return infoList
+            except selenium.common.exceptions.ElementClickInterceptedException:
+                self.escape()
+                continue
+            except selenium.common.exceptions.NoSuchElementException:
+                print(color.RED + '---Waiting---' + color.END)
+                time.sleep(1)
+                self.driver.refresh()
+                continue
+            except selenium.common.exceptions.TimeoutException:
+                self.driver.refresh()
+                continue
 
     def getFundValueList(self):  # 淨值表
-        self.driver.find_element(By.XPATH, "//span[text()='淨值走勢']").click()
-        dateElements = self.driver.find_elements(By.XPATH,
-                                                 "//td[@style='padding: 3px; height: 48px; text-align: center; "
-                                                 "font-size: 14px; overflow: hidden; white-space: inherit; "
-                                                 "text-overflow: inherit; background-color: rgb(240, 240, "
-                                                 "237); word-break: break-all; font-weight: 500; line-height: "
-                                                 "2.95; letter-spacing: 0.7px; color: rgb(119, 119, 119);']")
-        valueElements = self.driver.find_elements(By.XPATH, "//td[@style='padding: 3px; height: 48px; text-align: "
-                                                            "center; font-size: 14px; overflow: hidden; white-space: "
-                                                            "inherit; text-overflow: inherit; background-color: "
-                                                            "inherit; word-break: break-all; font-weight: 500; "
-                                                            "line-height: 2.95; letter-spacing: 0.7px; color: rgb("
-                                                            "119, 119, 119);']")
-        dateList = []
-        valueList = []
-        for x in dateElements:
-            dateList.append(str(x.text))
-        for x in valueElements:
-            valueList.append(str(x.text))
-        c = list(zip(dateList, valueList))
-        return c
+        while True:
+            try:
+                wait = WebDriverWait(self.driver, 5)
+                btn = wait.until(EC.presence_of_element_located((By.XPATH, "//span[text()='淨值走勢']")))
+                btn.click()
+                dateElements = self.driver.find_elements(By.XPATH,
+                                                         "//td[@style='padding: 3px; height: 48px; text-align: center; "
+                                                         "font-size: 14px; overflow: hidden; white-space: inherit; "
+                                                         "text-overflow: inherit; background-color: rgb(240, 240, "
+                                                         "237); word-break: break-all; font-weight: 500; line-height: "
+                                                         "2.95; letter-spacing: 0.7px; color: rgb(119, 119, 119);']")
+                valueElements = self.driver.find_elements(By.XPATH, "//td[@style='padding: 3px; height: 48px; text-align: "
+                                                                    "center; font-size: 14px; overflow: hidden; white-space: "
+                                                                    "inherit; text-overflow: inherit; background-color: "
+                                                                    "inherit; word-break: break-all; font-weight: 500; "
+                                                                    "line-height: 2.95; letter-spacing: 0.7px; color: rgb("
+                                                                    "119, 119, 119);']")
+                dateList = []
+                valueList = []
+                for x in dateElements:
+                    dateList.append(str(x.text))
+                for x in valueElements:
+                    valueList.append(str(x.text))
+                c = list(zip(dateList, valueList))
+                if not c:
+                    self.driver.refresh()
+                    continue
+                return c
+            except selenium.common.exceptions.ElementClickInterceptedException:
+                self.escape()
+                continue
+            except selenium.common.exceptions.NoSuchElementException:
+                print(color.RED + '---Waiting---' + color.END)
+                time.sleep(1)
+                self.driver.refresh()
+                continue
+            except selenium.common.exceptions.TimeoutException:
+                self.driver.refresh()
+                continue
 
     def getFundConfigure(self):  # 資產配置
-        self.driver.find_element(By.XPATH, "//span[text()='資產配置']").click()
-        elements1 = self.driver.find_elements(By.XPATH, "//*[@text-anchor='end']")
-        elements2 = self.driver.find_elements(By.XPATH, "//*[@style='background-color: rgb(255, 255, 255); padding: "
-                                                        "0px 24px; width: 100%; border-collapse: collapse; "
-                                                        "border-spacing: 0px; table-layout: fixed; font-family: "
-                                                        "微軟正黑體, \"Microsoft JhengHei\", SimHei, 新細明體, Arial, "
-                                                        "Verdana, Helvetica, sans-serif;']")
-        data = [elements1, elements2]  # 資產配置(股票現金占比)/資產配置頁的其他東西
-        confList = []
-        dataList = []
-        for x in data[0]:
-            tmp = x.text.split()
-            c = tuple([tmp[0], tmp[1]])
-            confList.append(c)
-        for x in data[1]:
-            if x.text != '':
-                s = x.text.split('\n')
-                dataList.append(s)
-        newDataList = []
-        lst = []
-        for x in dataList[0]:
-            if dataList[0].index(x) > 0:
-                tmp = x.split()
-                value = tmp[-1]
-                tmp = tmp[:-1:]
-                str1 = ""
-                for y in tmp:
-                    str1 += y + " "
-                c = tuple([str1, value])
-                lst.append(c)
-            else:
-                c = tuple(x.split())
-                lst.append(c)
-        newDataList.append(lst)
-        lst = []
-        for x in dataList[1]:
-            if dataList[1].index(x) > 0:
-                tmp = x.split()
-                unit = tmp[0]
-                value = tmp[1::]
-                c = tuple([unit, value])
-                lst.append(c)
-            else:
-                c = tuple(x.split())
-                lst.append(c)
-        newDataList.append(lst)
-        lst = []
-        for x in dataList[2]:
-            if dataList[2].index(x) > 0:
-                tmp = x.split()
-                value = tmp[-1]
-                tmp = tmp[:-1:]
-                str1 = ""
-                for y in tmp:
-                    str1 += y + " "
-                c = tuple([str1, value])
-                lst.append(c)
-            else:
-                c = tuple(x.split())
-                lst.append(c)
-        newDataList.append(lst)
-        return [confList, newDataList]
+        while True:
+            try:
+                wait = WebDriverWait(self.driver, 5)
+                btn = wait.until(EC.presence_of_element_located((By.XPATH, "//span[text()='資產配置']")))
+                btn.click()
+                elements1 = self.driver.find_elements(By.XPATH, "//*[@text-anchor='end']")
+                elements2 = self.driver.find_elements(By.XPATH,
+                                                      "//*[@style='background-color: rgb(255, 255, 255); padding: "
+                                                      "0px 24px; width: 100%; border-collapse: collapse; "
+                                                      "border-spacing: 0px; table-layout: fixed; font-family: "
+                                                      "微軟正黑體, \"Microsoft JhengHei\", SimHei, 新細明體, Arial, "
+                                                      "Verdana, Helvetica, sans-serif;']")
+
+                data = [elements1, elements2]  # 資產配置(股票現金占比)/資產配置頁的其他東西
+                confList = []
+                dataList = []
+                for x in data[0]:
+                    tmp = x.text.split()
+                    c = tuple([tmp[0], tmp[1]])
+                    confList.append(c)
+                for x in data[1]:
+                    if x.text != '':
+                        s = x.text.split('\n')
+                        dataList.append(s)
+                newDataList = []
+                lst = []
+                for x in dataList[0]:
+                    if dataList[0].index(x) > 0:
+                        tmp = x.split()
+                        value = tmp[-1]
+                        tmp = tmp[:-1:]
+                        str1 = ""
+                        for y in tmp:
+                            str1 += y + " "
+                        c = tuple([str1, value])
+                        lst.append(c)
+                    else:
+                        c = tuple(x.split())
+                        lst.append(c)
+                newDataList.append(lst)
+                lst = []
+                for x in dataList[1]:
+                    if dataList[1].index(x) > 0:
+                        tmp = x.split()
+                        unit = tmp[0]
+                        value = tmp[1::]
+                        c = tuple([unit, value])
+                        lst.append(c)
+                    else:
+                        c = tuple(x.split())
+                        lst.append(c)
+                newDataList.append(lst)
+                lst = []
+                for x in dataList[2]:
+                    if dataList[2].index(x) > 0:
+                        tmp = x.split()
+                        value = tmp[-1]
+                        tmp = tmp[:-1:]
+                        str1 = ""
+                        for y in tmp:
+                            str1 += y + " "
+                        c = tuple([str1, value])
+                        lst.append(c)
+                    else:
+                        c = tuple(x.split())
+                        lst.append(c)
+                newDataList.append(lst)
+                return [confList, newDataList]
+            except selenium.common.exceptions.ElementClickInterceptedException:
+                self.escape()
+                continue
+            except selenium.common.exceptions.NoSuchElementException:
+                print(color.RED + '---Waiting---' + color.END)
+                time.sleep(1)
+                self.driver.refresh()
+                continue
+            except selenium.common.exceptions.TimeoutException:
+                self.driver.refresh()
+                continue
 
     def getFundRisk(self):  # 風險評等
-        self.driver.find_element(By.XPATH, "//span[text()='風險評等']").click()
-        element = self.driver.find_element(By.XPATH, "//*[@style='margin: 5px 0px; text-align: center; font-size: "
-                                                     "18px; font-weight: 500; line-height: 1.67;']")
-        return element.text
+        while True:
+            try:
+                wait = WebDriverWait(self.driver, 5)
+                btn = wait.until(EC.presence_of_element_located((By.XPATH, "//span[text()='風險評等']")))
+                btn.click()
+                element = self.driver.find_element(By.XPATH,
+                                                   "//*[@style='margin: 5px 0px; text-align: center; font-size: "
+                                                   "18px; font-weight: 500; line-height: 1.67;']")
+                return element.text
+            except selenium.common.exceptions.ElementClickInterceptedException:
+                self.escape()
+                continue
+            except selenium.common.exceptions.NoSuchElementException:
+                print(color.RED + '---Waiting---' + color.END)
+                time.sleep(1)
+                self.driver.refresh()
+                continue
+            except selenium.common.exceptions.TimeoutException:
+                self.driver.refresh()
+                continue
 
     def getFundDividend(self):  # 配息紀錄
-        self.driver.find_element(By.XPATH, "//span[text()='配息紀錄']").click()
-        element = self.driver.find_element(By.XPATH, "//*[contains(text(), '無配息資料')]")
-        if element.get_attribute('style') == 'display: none;':
-            elements = self.driver.find_elements(By.XPATH,
-                                                 "//*[@style='background-color: rgb(255, 255, 255); padding: 0px "
-                                                 "24px; width: 100%; border-collapse: collapse; border-spacing: 0px; "
-                                                 "table-layout: fixed; font-family: 微軟正黑體, \"Microsoft JhengHei\", "
-                                                 "SimHei, 新細明體, Arial, Verdana, Helvetica, sans-serif;']")
-            b = None
-            for elem in elements:
-                a = elem.text.split('\n')
-                b = []
-                for item in a:
-                    c = item.split()
-                    if c:
-                        c = tuple(c)
-                        b.append(c)
+        while True:
+            try:
+                wait = WebDriverWait(self.driver, 5)
+                btn = wait.until(EC.presence_of_element_located((By.XPATH, "//span[text()='配息紀錄']")))
+                btn.click()
+                element = self.driver.find_element(By.XPATH, "//*[contains(text(), '無配息資料')]")
+                if element.get_attribute('style') == 'display: none;':
+                    elements = self.driver.find_elements(By.XPATH,
+                                                         "//*[@style='background-color: rgb(255, 255, 255); padding: 0px "
+                                                         "24px; width: 100%; border-collapse: collapse; border-spacing: 0px; "
+                                                         "table-layout: fixed; font-family: 微軟正黑體, \"Microsoft JhengHei\", "
+                                                         "SimHei, 新細明體, Arial, Verdana, Helvetica, sans-serif;']")
+                    b = None
+                    for elem in elements:
+                        a = elem.text.split('\n')
+                        b = []
+                        for item in a:
+                            c = item.split()
+                            if c:
+                                c = tuple(c)
+                                b.append(c)
 
-            return b
-        else:
-            return '無配息資料'
+                    return b
+                else:
+                    return '無配息資料'
+            except selenium.common.exceptions.ElementClickInterceptedException:
+                self.escape()
+                continue
+            except selenium.common.exceptions.NoSuchElementException:
+                print(color.RED + '---Waiting---' + color.END)
+                time.sleep(3)
+                continue
+            except selenium.common.exceptions.TimeoutException:
+                self.driver.refresh()
+                continue
 
     def escape(self):
         for x in range(2):
@@ -305,8 +420,6 @@ class FundListScraper:
             for fund in funds:
                 print(f"{funds.index(fund) + 1}. {fund[0]} {fund[1]}")
             print(color.BOLD + "---Processing---" + color.END)
-            time.sleep(1)
-            net.escape()
             oldFunds = funds
             fundList = fundList + funds
             if not net.nextPage():
@@ -321,6 +434,7 @@ class FundListScraper:
             FundList.append(f)
         print(f"Total: {len(FundList)}")
         self.fundList = FundList
+        return
 
     def getFundList(self):
         return self.fundList
@@ -346,15 +460,11 @@ class FundDetailScraper:
         if self.id is None:
             raise ValueError("Invalid ID")
         self.net.setTarget(self.infoUrl)
-        self.net.escape()
         infoList = self.net.getFundDetail()
-        self.net.escape()
         valueList = self.net.getFundValueList()
         confData = self.net.getFundConfigure()
-        self.net.escape()
         risk = self.net.getFundRisk()
         dividendData = self.net.getFundDividend()
-        self.net.escape()
         self.infoList = infoList
         self.valueList = valueList
         self.confList = confData[0]
