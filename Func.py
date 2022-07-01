@@ -24,10 +24,12 @@ class color:  # text colors
 class FundListNetProcess:
     def __init__(self, url):
         self.url = url
-        self.driver = webdriver.Edge()
+        opt = webdriver.EdgeOptions()
+        opt.add_argument('log-level=3')
+        self.driver = webdriver.Edge(options=opt)
         self.driver.get(self.url)
 
-    def getFundInfo(self):  # 取得清單上的基金資料(代碼、基金名稱；三個月、六個月、一年、二年、三年、五年、成立至今等績效)
+    def getFundInfo(self):  # 取得清單上的基金資料(代碼、基金名稱)
         while True:
             try:
                 wait = WebDriverWait(self.driver, 5)
@@ -42,8 +44,8 @@ class FundListNetProcess:
                     for y in s:
                         if y != '':
                             newS.append(y)
-                    funds.append(newS)
-                funds = funds[:-1:]
+                    if newS:
+                        funds.append([newS[0], newS[1]])
                 if not funds:
                     continue
                 return funds
@@ -95,7 +97,10 @@ class FundListNetProcess:
 class FundDetailNetProcess:
     def __init__(self, url):
         self.url = url
-        self.driver = webdriver.Edge()
+        opt = webdriver.EdgeOptions()
+        opt.add_argument('log-level=3')
+        opt.headless = True
+        self.driver = webdriver.Edge(options=opt)
         self.driver.get(self.url)
         print(color.BOLD + "---Waiting---" + color.END)
         time.sleep(3)
@@ -108,7 +113,6 @@ class FundDetailNetProcess:
     def getFundDetail(self):  # 基金資料
         while True:
             try:
-                time.sleep(0.5)
                 wait = WebDriverWait(self.driver, 5)
                 wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'col-sm-8')))
                 elements = self.driver.find_elements(By.CLASS_NAME, 'col-sm-8')
@@ -148,12 +152,13 @@ class FundDetailNetProcess:
                                                          "text-overflow: inherit; background-color: rgb(240, 240, "
                                                          "237); word-break: break-all; font-weight: 500; line-height: "
                                                          "2.95; letter-spacing: 0.7px; color: rgb(119, 119, 119);']")
-                valueElements = self.driver.find_elements(By.XPATH, "//td[@style='padding: 3px; height: 48px; text-align: "
-                                                                    "center; font-size: 14px; overflow: hidden; white-space: "
-                                                                    "inherit; text-overflow: inherit; background-color: "
-                                                                    "inherit; word-break: break-all; font-weight: 500; "
-                                                                    "line-height: 2.95; letter-spacing: 0.7px; color: rgb("
-                                                                    "119, 119, 119);']")
+                valueElements = self.driver.find_elements(By.XPATH,
+                                                          "//td[@style='padding: 3px; height: 48px; text-align: "
+                                                          "center; font-size: 14px; overflow: hidden; white-space: "
+                                                          "inherit; text-overflow: inherit; background-color: "
+                                                          "inherit; word-break: break-all; font-weight: 500; "
+                                                          "line-height: 2.95; letter-spacing: 0.7px; color: rgb("
+                                                          "119, 119, 119);']")
                 dateList = []
                 valueList = []
                 for x in dateElements:
@@ -176,6 +181,14 @@ class FundDetailNetProcess:
             except selenium.common.exceptions.TimeoutException:
                 self.driver.refresh()
                 continue
+
+    def getEarn(self):  # 績效表現 developing...
+        wait = WebDriverWait(self.driver, 5)
+        btn = wait.until(EC.presence_of_element_located((By.XPATH, "//span[text()='績效表現']")))
+        btn.click()
+        element = self.driver.find_element(By.XPATH,
+                                           "//div[@style='width: 100%; padding-bottom: 45px; display: inline-block;']//div[@class='row']")
+        print(element.text)
 
     def getFundConfigure(self):  # 資產配置
         while True:
@@ -329,20 +342,18 @@ class FundInfo:
     def __init__(self, *args):
         self.id = args[0]
         self.name = args[1]
-        self.info = []
+        self.infoList = []
         self.valueList = []
         self.confList = []
         self.dataList = []
+        self.earnList = []
         self.risk = None
         self.dividend = None
-        for x in args:
-            self.info.append(x)
-        self.info = self.info[2::]
 
     def show(self):
-        print(color.CYAN + self.id + self.name + color.END)
+        print(color.CYAN + self.id + ' ' + self.name + color.END)
         print(color.PURPLE + "Info:" + color.END)
-        for x in self.info:
+        for x in self.infoList:
             print(x)
         print('\n\n')
         print(color.PURPLE + "Value List:" + color.END)
@@ -370,7 +381,7 @@ class FundInfo:
 
     def addInfo(self, *args):
         for x in args:
-            self.info.append(x)
+            self.infoList.append(x)
 
     def setValueList(self, listOfValue: list):
         self.valueList = listOfValue
@@ -386,6 +397,9 @@ class FundInfo:
 
     def setDividend(self, dividend):
         self.dividend = dividend
+
+    def setEarnList(self, earnList):
+        self.earnList = earnList
 
     def getId(self):
         return self.id
@@ -404,12 +418,13 @@ class FundListScraper:
             raise ValueError("Url invalid!")
         net = FundListNetProcess(self.url)
         funds = net.getFundInfo()
+        fundList = []
+        for x in funds:
+            f = FundInfo(x[0], x[1])
+            fundList.append(f)
         net.nextPage()
-        fundList = funds
         startTime = time.time()
         oldFunds = []
-        for fund in funds:
-            print(fund[0], fund[1])
         while funds:
             system('cls')
             print(f"time passed: {round(time.time() - startTime)}")
@@ -417,30 +432,28 @@ class FundListScraper:
             funds = net.getFundInfo()
             if oldFunds == funds:
                 continue
+            oldFunds = funds
             for fund in funds:
                 print(f"{funds.index(fund) + 1}. {fund[0]} {fund[1]}")
             print(color.BOLD + "---Processing---" + color.END)
-            oldFunds = funds
-            fundList = fundList + funds
+            newFunds = []
+            for x in funds:
+                f = FundInfo(x[0], x[1])
+                newFunds.append(f)
+            fundList = fundList + newFunds
             if not net.nextPage():
                 break
 
         net.close()
-        FundList = []
-        for fund in fundList:
-            f = FundInfo(fund[0], fund[1], fund[2], fund[3], fund[4], fund[5], fund[6],
-                         fund[7],
-                         fund[8])
-            FundList.append(f)
-        print(f"Total: {len(FundList)}")
-        self.fundList = FundList
+        print(f"Total: {len(fundList)}")
+        self.fundList = fundList
         return
 
     def getFundList(self):
         return self.fundList
 
 
-class FundDetailScraper:
+class FundDetailScraper: # earnList not added
     def __init__(self, id):
         self.id = id
         self.infoUrl = f"https://www.fundrich.com.tw/fund/{self.id}.html?id={self.id}#%E5%9F%BA%E9%87%91%E8%B3%87%E6%96%99"
@@ -493,6 +506,34 @@ class FundDetailScraper:
 
     def close(self):
         self.net.close()
+
+
+class FundScraper:
+    def __init__(self):
+        self.f1 = FundListScraper()
+        self.url1 = 'https://www.fundrich.com.tw/new-theme-fund/root.HOT.hot006'  # 單筆top20
+        self.url2 = 'https://www.fundrich.com.tw/new-theme-fund/root.HOT.hot13'  # 定額top20
+        self.url3 = 'https://www.fundrich.com.tw/new-theme-fund/'  # 全部
+        self.url = None
+
+    def setTarget(self, num: int):
+        print(color.RED + 'Target set: ' + color.END, end='')
+        if num == 1:
+            print(color.DARKCYAN + '單筆top20' + color.END)
+            self.url = self.url1
+        elif num == 2:
+            print(color.DARKCYAN + '定額top20' + color.END)
+            self.url = self.url2
+        elif num == 3:
+            print(color.DARKCYAN + '全部' + color.END)
+            self.url = self.url3
+        else:
+            print(color.RED + 'nothing' + color.END)
+
+    def getListOfFunds(self):
+        if self.url is None:
+            print(color.RED + 'Please set the target before scraping.' + color.END)
+        self.f1.start()
 
 
 if __name__ == '__main__':
