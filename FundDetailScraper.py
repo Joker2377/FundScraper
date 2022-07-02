@@ -1,97 +1,12 @@
 import time
-from os import system
-
 import selenium
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from os import system
 
-
-class color:  # text colors
-    PURPLE = '\033[95m'
-    CYAN = '\033[96m'
-    DARKCYAN = '\033[36m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    END = '\033[0m'
-
-
-class FundListNetProcess:
-    def __init__(self, url):
-        self.url = url
-        opt = webdriver.EdgeOptions()
-        opt.add_argument('log-level=3')
-        self.driver = webdriver.Edge(options=opt)
-        self.driver.get(self.url)
-
-    def getFundInfo(self):  # 取得清單上的基金資料(代碼、基金名稱)
-        while True:
-            try:
-                wait = WebDriverWait(self.driver, 5)
-                wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'tbody')))
-                element = self.driver.find_element(By.CLASS_NAME, 'tbody')
-                result = element.text
-                str = result.split('立即結帳')
-                funds = []
-                for x in str:
-                    s = x.split('\n')
-                    newS = []
-                    for y in s:
-                        if y != '':
-                            newS.append(y)
-                    if newS:
-                        funds.append([newS[0], newS[1]])
-                if not funds:
-                    continue
-                return funds
-            except selenium.common.exceptions.NoSuchElementException:
-                self.escape()  # 關閉廣告
-                print(color.RED + '---Waiting---' + color.END)
-                time.sleep(1)
-                self.driver.refresh()
-                continue
-            except selenium.common.exceptions.TimeoutException:
-                self.escape()
-                self.driver.refresh()
-                continue
-
-    def escape(self):  # 避免廣告視窗干擾運作
-        for x in range(3):
-            webdriver.ActionChains(self.driver).move_by_offset(0, 0).click().perform()
-
-    def nextPage(self):  # 下一頁
-        times = 0
-        while True:
-            try:
-                time.sleep(1)
-                wait = WebDriverWait(self.driver, 5)
-                btn = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "btn-next")))
-                btn.click()
-                element = self.driver.find_element(By.CLASS_NAME, "btn-next")
-                times = 0
-                if element.is_enabled():
-                    return True
-                else:
-                    return False
-            except selenium.common.exceptions.ElementClickInterceptedException:
-                print(color.RED + '---Waiting---' + color.END)
-                times += 1
-                if times > 5:
-                    self.escape()
-                continue
-            except selenium.common.exceptions.TimeoutException:
-                self.driver.refresh()
-                print(color.RED + '---Waiting---' + color.END)
-                time.sleep(3)
-                continue
-
-    def close(self):  # 關閉瀏覽器視窗
-        self.driver.close()
+from color import *
 
 
 class FundDetailNetProcess:
@@ -102,7 +17,7 @@ class FundDetailNetProcess:
         opt.headless = True
         self.driver = webdriver.Edge(options=opt)
         self.driver.get(self.url)
-        print(color.BOLD + "---Waiting---" + color.END)
+        print(Color.BOLD + "---Waiting---" + Color.END)
         time.sleep(3)
         system('cls')
 
@@ -132,7 +47,7 @@ class FundDetailNetProcess:
                 self.escape()
                 continue
             except selenium.common.exceptions.NoSuchElementException:
-                print(color.RED + '---Waiting---' + color.END)
+                print(Color.RED + '---Waiting---' + Color.END)
                 time.sleep(1)
                 self.driver.refresh()
                 continue
@@ -174,7 +89,7 @@ class FundDetailNetProcess:
                 self.escape()
                 continue
             except selenium.common.exceptions.NoSuchElementException:
-                print(color.RED + '---Waiting---' + color.END)
+                print(Color.RED + '---Waiting---' + Color.END)
                 time.sleep(1)
                 self.driver.refresh()
                 continue
@@ -182,13 +97,23 @@ class FundDetailNetProcess:
                 self.driver.refresh()
                 continue
 
-    def getEarn(self):  # 績效表現 developing...
+    def getEarn(self):  # 績效表現
         wait = WebDriverWait(self.driver, 5)
         btn = wait.until(EC.presence_of_element_located((By.XPATH, "//span[text()='績效表現']")))
         btn.click()
         element = self.driver.find_element(By.XPATH,
-                                           "//div[@style='width: 100%; padding-bottom: 45px; display: inline-block;']//div[@class='row']")
-        print(element.text)
+                                           "//div[@style='width: 100%; padding-bottom: 45px; display: "
+                                           "inline-block;']//div[@class='row']")
+        ls = element.text.split('\n')
+        re = []
+        for x in ls:
+            c = x.split()
+            if tuple(c) not in re:
+                if len(c) == 3:
+                    c = [c[0], c[1]+c[2]]
+                c = tuple(c)
+                re.append(c)
+        return re
 
     def getFundConfigure(self):  # 資產配置
         while True:
@@ -263,7 +188,7 @@ class FundDetailNetProcess:
                 self.escape()
                 continue
             except selenium.common.exceptions.NoSuchElementException:
-                print(color.RED + '---Waiting---' + color.END)
+                print(Color.RED + '---Waiting---' + Color.END)
                 time.sleep(1)
                 self.driver.refresh()
                 continue
@@ -285,7 +210,7 @@ class FundDetailNetProcess:
                 self.escape()
                 continue
             except selenium.common.exceptions.NoSuchElementException:
-                print(color.RED + '---Waiting---' + color.END)
+                print(Color.RED + '---Waiting---' + Color.END)
                 time.sleep(1)
                 self.driver.refresh()
                 continue
@@ -323,7 +248,7 @@ class FundDetailNetProcess:
                 self.escape()
                 continue
             except selenium.common.exceptions.NoSuchElementException:
-                print(color.RED + '---Waiting---' + color.END)
+                print(Color.RED + '---Waiting---' + Color.END)
                 time.sleep(3)
                 continue
             except selenium.common.exceptions.TimeoutException:
@@ -338,126 +263,15 @@ class FundDetailNetProcess:
         self.driver.close()
 
 
-class FundInfo:
-    def __init__(self, *args):
-        self.id = args[0]
-        self.name = args[1]
-        self.infoList = []
-        self.valueList = []
-        self.confList = []
-        self.dataList = []
-        self.earnList = []
-        self.risk = None
-        self.dividend = None
-
-    def show(self):
-        print(color.CYAN + self.id + ' ' + self.name + color.END)
-        print(color.PURPLE + "Info:" + color.END)
-        for x in self.infoList:
-            print(x)
-        print('\n\n')
-        print(color.PURPLE + "Value List:" + color.END)
-        for x in self.valueList:
-            print(x)
-        print('\n\n')
-        print(color.PURPLE + "Configure List:" + color.END)
-        for x in self.confList:
-            print(x)
-        print('\n\n')
-        print(color.PURPLE + "Data List:" + color.END)
-        for x in self.dataList:
-            print(x)
-        print('\n\n')
-        print(color.PURPLE + "Risk:" + color.END)
-        print(self.risk)
-        print('\n\n')
-        print(color.PURPLE + "Dividend:" + color.END)
-        if isinstance(self.dividend, str):
-            print(self.dividend)
+class FundDetailScraper:  # earnList not added
+    def __init__(self, **kwargs):
+        if not kwargs:
+            self.id = 'ALI006'  # 參考基金，用以建立driver instance
         else:
-            for x in self.dividend:
-                print(x)
-        print('-----------------------------------------------------------')
-
-    def addInfo(self, *args):
-        for x in args:
-            self.infoList.append(x)
-
-    def setValueList(self, listOfValue: list):
-        self.valueList = listOfValue
-
-    def setConfList(self, confList):
-        self.confList = confList
-
-    def setDataList(self, dataList):
-        self.dataList = dataList
-
-    def setRisk(self, risk):
-        self.risk = risk
-
-    def setDividend(self, dividend):
-        self.dividend = dividend
-
-    def setEarnList(self, earnList):
-        self.earnList = earnList
-
-    def getId(self):
-        return self.id
-
-
-class FundListScraper:
-    def __init__(self):
-        self.fundList = []
-        self.url = None
-
-    def setTargetUrl(self, url):
-        self.url = url
-
-    def start(self):
-        if self.url is None:
-            raise ValueError("Url invalid!")
-        net = FundListNetProcess(self.url)
-        funds = net.getFundInfo()
-        fundList = []
-        for x in funds:
-            f = FundInfo(x[0], x[1])
-            fundList.append(f)
-        net.nextPage()
-        startTime = time.time()
-        oldFunds = []
-        while funds:
-            system('cls')
-            print(f"time passed: {round(time.time() - startTime)}")
-            funds = []
-            funds = net.getFundInfo()
-            if oldFunds == funds:
-                continue
-            oldFunds = funds
-            for fund in funds:
-                print(f"{funds.index(fund) + 1}. {fund[0]} {fund[1]}")
-            print(color.BOLD + "---Processing---" + color.END)
-            newFunds = []
-            for x in funds:
-                f = FundInfo(x[0], x[1])
-                newFunds.append(f)
-            fundList = fundList + newFunds
-            if not net.nextPage():
-                break
-
-        net.close()
-        print(f"Total: {len(fundList)}")
-        self.fundList = fundList
-        return
-
-    def getFundList(self):
-        return self.fundList
-
-
-class FundDetailScraper: # earnList not added
-    def __init__(self, id):
-        self.id = id
+            self.id = kwargs['id']
         self.infoUrl = f"https://www.fundrich.com.tw/fund/{self.id}.html?id={self.id}#%E5%9F%BA%E9%87%91%E8%B3%87%E6%96%99"
         self.infoList = []  # 基金資料
+        self.earnList = []  # 績效表現
         self.valueList = []  # 近30日淨值表
         self.confList = []  # 資產配置
         self.dataList = []  # 行業比重、風險評估、前十大持股
@@ -473,21 +287,20 @@ class FundDetailScraper: # earnList not added
         if self.id is None:
             raise ValueError("Invalid ID")
         self.net.setTarget(self.infoUrl)
-        infoList = self.net.getFundDetail()
-        valueList = self.net.getFundValueList()
-        confData = self.net.getFundConfigure()
-        risk = self.net.getFundRisk()
-        dividendData = self.net.getFundDividend()
-        self.infoList = infoList
-        self.valueList = valueList
-        self.confList = confData[0]
-        self.dataList = confData[1]
-        self.risk = risk
-        self.dividend = dividendData
-        print(color.GREEN + "---Data received---" + color.END + infoList[0])
+        self.infoList = self.net.getFundDetail()
+        self.earnList = self.net.getEarn()
+        self.valueList = self.net.getFundValueList()
+        self.confList = self.net.getFundConfigure()[0]
+        self.dataList = self.net.getFundConfigure()[1]
+        self.risk = self.net.getFundRisk()
+        self.dividend = self.net.getFundDividend()
+        print(Color.GREEN + "---Data received---" + Color.END + self.infoList[0])
 
     def getInfoList(self):
         return self.infoList
+
+    def getEarnList(self):
+        return self.earnList
 
     def getValueList(self):
         return self.valueList
@@ -506,63 +319,3 @@ class FundDetailScraper: # earnList not added
 
     def close(self):
         self.net.close()
-
-
-class FundScraper:
-    def __init__(self):
-        self.f1 = FundListScraper()
-        self.url1 = 'https://www.fundrich.com.tw/new-theme-fund/root.HOT.hot006'  # 單筆top20
-        self.url2 = 'https://www.fundrich.com.tw/new-theme-fund/root.HOT.hot13'  # 定額top20
-        self.url3 = 'https://www.fundrich.com.tw/new-theme-fund/'  # 全部
-        self.url = None
-
-    def setTarget(self, num: int):
-        print(color.RED + 'Target set: ' + color.END, end='')
-        if num == 1:
-            print(color.DARKCYAN + '單筆top20' + color.END)
-            self.url = self.url1
-        elif num == 2:
-            print(color.DARKCYAN + '定額top20' + color.END)
-            self.url = self.url2
-        elif num == 3:
-            print(color.DARKCYAN + '全部' + color.END)
-            self.url = self.url3
-        else:
-            print(color.RED + 'nothing' + color.END)
-
-    def getListOfFunds(self):
-        if self.url is None:
-            print(color.RED + 'Please set the target before scraping.' + color.END)
-        self.f1.start()
-
-
-if __name__ == '__main__':
-    f1 = FundListScraper()
-    f1.setTargetUrl("https://www.fundrich.com.tw/new-theme-fund/root.HOT.hot006")
-    f1.start()
-
-    fundList = f1.getFundList()
-    f2 = FundDetailScraper(fundList[0].getId())
-    for x in fundList:
-        id = x.getId()
-        f2.setTargetFund(id)
-        f2.start()
-
-        infoList = f2.getInfoList()
-        valueList = f2.getValueList()
-        confList = f2.getConflist()
-        dataList = f2.getDataList()
-        risk = f2.getRisk()
-        dividend = f2.getDividend()
-
-        x.setValueList(valueList)
-        x.setConfList(confList)
-        x.setDataList(dataList)
-        x.setRisk(risk)
-        x.setDividend(dividend)
-        for info in infoList:
-            x.addInfo(info)
-
-    for x in fundList:
-        print(x.show())
-    input(color.RED + "stop" + color.END)
