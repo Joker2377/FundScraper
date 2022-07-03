@@ -125,6 +125,7 @@ class FundListScraper:
         net.close()
         print(f"Total: {len(fundList)}")
         self.fundList = fundList
+        system('cls')
         return
 
     def getFundList(self):

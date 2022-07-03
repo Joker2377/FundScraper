@@ -1,10 +1,14 @@
-from color import *
+from Color import *
 
 
 class Fund:
     def __init__(self, *args):
-        self.id = args[0]
-        self.name = args[1]
+        if len(args) == 2:
+            self.id = args[0]
+            self.name = args[1]
+        elif len(args) == 1:
+            self.id = args[0]
+            self.name = None
         self.infoList = []
         self.valueList = []
         self.confList = []
@@ -49,6 +53,9 @@ class Fund:
     def addInfo(self, *args):
         for x in args:
             self.infoList.append(x)
+
+    def setName(self, name):
+        self.name = name
 
     def setValueList(self, listOfValue: list):
         self.valueList = listOfValue
