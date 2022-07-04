@@ -1,5 +1,3 @@
-import csv
-
 from FundDetailScraper import *
 from FundListScraper import *
 
@@ -12,8 +10,8 @@ class FundScraper:
         self.url2 = 'https://www.fundrich.com.tw/new-theme-fund/root.HOT.hot13'  # 定額top20
         self.url3 = 'https://www.fundrich.com.tw/new-theme-fund/'  # 全部
         self.url = None
-        self.fundList = None
-        self.fundIdList = None
+        self.fundList = []
+        self.fundIdList = []
         self.driverInitializeOrNot = False
 
     def initializeDriver(self):
@@ -50,50 +48,44 @@ class FundScraper:
         fundIdList = []
         for x in self.fundList:
             fundIdList.append(x.getId())
+        self.fundIdList = fundIdList
+        self.writeFundIdList()
 
     def readFundIdList(self):
-        with open('fund_id_list.csv', 'r', newline='') as csvfile:
-            rows = csv.reader(csvfile)
-            fundIdList = []
-            for row in rows:
-                fundIdList.append(row[0])
-            print(fundIdList)
-            self.fundIdList = fundIdList
-            csvfile.close()
+        try:
+            with open('fund_id_list.txt', 'r', newline='') as file:
+                fundIdList = file.readlines()
+                if len(fundIdList) >1:
+                    for x in fundIdList:
+                        if len(x) > 6:
+                            x = x[:-1:]
+                        if x not in self.fundIdList and len(x) == 6:
+                            self.fundIdList.append(x)
+                else:
+                    if len(fundIdList[0]) > 6:
+                        fundIdList[0] = fundIdList[0][:-1:]
+                    if fundIdList[0] not in self.fundIdList and len(fundIdList[0]) == 6:
+                        self.fundIdList.append(fundIdList[0])
+        except FileNotFoundError:
+            with open('fund_id_list.txt', 'x', newline='') as file:
+                pass
 
-    def appendFundIdList(self, fundIdList):
-        with open('fund_id_list.csv', 'a', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            for id in fundIdList:
-                writer.writerow(id)
-            csvfile.close()
+    def writeFundIdList(self):
+        self.readFundIdList()
+        with open('fund_id_list.txt', 'w', newline='') as file:
+            print(self.fundIdList)
+            for id in self.fundIdList:
+                file.write(id)
+                file.write('\n')
 
-    def inputFundIdList(self):
-        with open('fund_id_list.csv', 'a', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            print('Enter list of fund ids, type \'EOF\' for end of input: Ex: ALI006')
-            fundIdList = []
-            while True:
-                id = input()
-                if id == 'EOF':
-                    break
-                fundIdList.append(id)
-            for fundId in fundIdList:
-                writer.writerow([fundId])
-            csvfile.close()
-
-    def startFundDetailScraping(self, byId:bool):
+    def startFundDetailScraping(self, **kwargs):
         if not self.driverInitializeOrNot:
             self.initializeDriver()
+        self.readFundIdList()
         if not self.fundList and not self.fundIdList:
             print(Color.RED + 'Get a fundList or fundIdList before starting \"fund detail scraping\".' + Color.END)
 
-        if byId:
-            fundList = []
-            for x in self.fundIdList:
-                fundList.append(Fund(x))
-            self.fundList = fundList
-        else:
+        if len(kwargs) < 1:
             if not self.fundList:
                 print(Color.RED + 'Get a fundList before starting \"fund detail scraping by fundList\".' + Color.END)
             for x in self.fundList:
@@ -112,9 +104,16 @@ class FundScraper:
                 x.setDividend(self.f2.getDividend())
                 for info in infoList:
                     x.addInfo(info)
-
             for x in self.fundList:
                 x.show()
+
+        elif kwargs['byId']:
+            fundList = []
+            for x in self.fundIdList:
+                fundList.append(Fund(x))
+            self.fundList = fundList
+            self.startFundDetailScraping()
+
         input(Color.RED + "stop" + Color.END)
 
     def getFundList(self):
@@ -123,5 +122,6 @@ class FundScraper:
 
 if __name__ == '__main__':
     f = FundScraper()
-    f.startFundListScraping()
-    f.startFundDetailScraping(False)
+    #f.startFundListScraping()
+    f.startFundDetailScraping(byId=True)
+    input(Color.RED + 'stop' + Color.END)

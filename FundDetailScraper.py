@@ -17,7 +17,7 @@ class FundDetailNetProcess:
         opt.headless = True
         self.driver = webdriver.Edge(options=opt)
         self.driver.get(self.url)
-        print(Color.BOLD + "---Waiting---" + Color.END)
+        print("---Waiting---")
         time.sleep(3)
         system('cls')
 
@@ -110,7 +110,7 @@ class FundDetailNetProcess:
             c = x.split()
             if tuple(c) not in re:
                 if len(c) == 3:
-                    c = [c[0], c[1]+c[2]]
+                    c = [c[0], c[1] + c[2]]
                 c = tuple(c)
                 re.append(c)
         return re
@@ -294,7 +294,7 @@ class FundDetailScraper:  # earnList not added
         self.dataList = self.net.getFundConfigure()[1]
         self.risk = self.net.getFundRisk()
         self.dividend = self.net.getFundDividend()
-        print(Color.GREEN + "---Data received---" + Color.END + self.infoList[0])
+        print(f"{Color.GREEN}---Data received---{Color.END}{self.id}{self.infoList[0]}")
 
     def getInfoList(self):
         return self.infoList
