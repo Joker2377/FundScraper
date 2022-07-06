@@ -1,3 +1,4 @@
+import json
 from FundDetailScraper import *
 from FundListScraper import *
 
@@ -55,13 +56,13 @@ class FundScraper:
         try:
             with open('fund_id_list.txt', 'r', newline='') as file:
                 fundIdList = file.readlines()
-                if len(fundIdList) >1:
+                if len(fundIdList) > 1:
                     for x in fundIdList:
                         if len(x) > 6:
                             x = x[:-1:]
                         if x not in self.fundIdList and len(x) == 6:
                             self.fundIdList.append(x)
-                else:
+                elif len(fundIdList) == 1:
                     if len(fundIdList[0]) > 6:
                         fundIdList[0] = fundIdList[0][:-1:]
                     if fundIdList[0] not in self.fundIdList and len(fundIdList[0]) == 6:
@@ -73,7 +74,6 @@ class FundScraper:
     def writeFundIdList(self):
         self.readFundIdList()
         with open('fund_id_list.txt', 'w', newline='') as file:
-            print(self.fundIdList)
             for id in self.fundIdList:
                 file.write(id)
                 file.write('\n')
@@ -114,14 +114,54 @@ class FundScraper:
             self.fundList = fundList
             self.startFundDetailScraping()
 
-        input(Color.RED + "stop" + Color.END)
-
     def getFundList(self):
         return self.fundList
 
+    def toJson(self, fundList):
+        jsonFundList = []
+        for fund in fundList:
+            d1 = {'name': fund.name,
+                  'id': fund.id,  # 基金代碼
+                  'eng_name': fund.infoList[1],  # 英文名稱
+                  'general_agent': fund.infoList[2],  # 總代理
+                  'company': fund.infoList[3],  # 基金公司
+                  'create_date': fund.infoList[4],  # 成立日期
+                  'fund_type': fund.infoList[5],  # 基金類型
+                  'register_country': fund.infoList[6],  # 基金註冊地
+                  'goal': fund.infoList[7],  # 投資目標
+                  'original_scale': fund.infoList[8],  # 原始可發行規模(百萬)
+                  'scale': fund.infoList[9],  # 基金規模
+                  'manage_institution': fund.infoList[10],  # 保管機構
+                  'manage_fee': fund.infoList[11],  # 基金保管費率
+                  'manage_fee_max': fund.infoList[12],  # 基金管理費率(最高)
+                  'earning_distribute': fund.infoList[13],  # 收益分配方式
+                  'buying_handling_fee': fund.infoList[14],  # 申購手續費
+                  'company_url': fund.infoList[15],  # 公司簡介網址
+                  'value_list': fund.valueList,  # 淨值表
+                  'earn_list': fund.earnList,  # 績效表現
+                  'configure_list': fund.confList,  # 資產配置
+                  'industry_proportion': fund.dataList[0],  # 行業比重
+                  'risk_evaluate': fund.dataList[1],  # 風險評估
+                  'top10_shareholding': fund.dataList[2],  # 前十大持股
+                  'risk': fund.risk,  # 風險評等(RR)
+                  'dividend': fund.dividend  # 配息紀錄
+                  }
+            jsonFundList.append(d1)
+        jsonStr = json.dumps(jsonFundList, ensure_ascii=False)
+        return jsonStr
+
+    def writeJsonfile(self, jsonStr):
+        with open('fund_list.json', 'w', encoding='UTF-8') as jsonFile:
+            jsonFile.write(str(jsonStr))
+
 
 if __name__ == '__main__':
+    print('---Initializing driver---')
     f = FundScraper()
+
     #f.startFundListScraping()
     f.startFundDetailScraping(byId=True)
+    fundList = f.getFundList()
+    jsonStr = f.toJson(fundList)
+    f.writeJsonfile(jsonStr)
     input(Color.RED + 'stop' + Color.END)
