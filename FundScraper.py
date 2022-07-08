@@ -50,38 +50,12 @@ class FundScraper:
         for x in self.fundList:
             fundIdList.append(x.getId())
         self.fundIdList = fundIdList
-        self.writeFundIdList()
-
-    def readFundIdList(self):
-        try:
-            with open('fund_id_list.txt', 'r', newline='') as file:
-                fundIdList = file.readlines()
-                if len(fundIdList) > 1:
-                    for x in fundIdList:
-                        if len(x) > 6:
-                            x = x[:-1:]
-                        if x not in self.fundIdList and len(x) == 6:
-                            self.fundIdList.append(x)
-                elif len(fundIdList) == 1:
-                    if len(fundIdList[0]) > 6:
-                        fundIdList[0] = fundIdList[0][:-1:]
-                    if fundIdList[0] not in self.fundIdList and len(fundIdList[0]) == 6:
-                        self.fundIdList.append(fundIdList[0])
-        except FileNotFoundError:
-            with open('fund_id_list.txt', 'x', newline='') as file:
-                pass
-
-    def writeFundIdList(self):
-        self.readFundIdList()
-        with open('fund_id_list.txt', 'w', newline='') as file:
-            for id in self.fundIdList:
-                file.write(id)
-                file.write('\n')
+        self.writeFundIdList(fundIdList)
 
     def startFundDetailScraping(self, **kwargs):
         if not self.driverInitializeOrNot:
             self.initializeDriver()
-        self.readFundIdList()
+        self.readTargetIdList()
         if not self.fundList and not self.fundIdList:
             print(Color.RED + 'Get a fundList or fundIdList before starting \"fund detail scraping\".' + Color.END)
 
@@ -106,6 +80,7 @@ class FundScraper:
                     x.addInfo(info)
             for x in self.fundList:
                 x.show()
+            self.writeData()
 
         elif kwargs['byId']:
             fundList = []
@@ -116,6 +91,51 @@ class FundScraper:
 
     def getFundList(self):
         return self.fundList
+
+    def readTargetIdList(self):
+        try:
+            with open('target_id_list.txt', 'r', newline='') as file:
+                fundIdList = file.readlines()
+                for x in fundIdList:
+                    x = x[:-1:]  # remove '\n'
+                    if x not in self.fundIdList:  # 避免讀入重複內容
+                        self.fundIdList.append(x)
+        except FileNotFoundError:
+            with open('target_id_list.txt', 'x', newline='') as file:
+                pass
+
+    def writeTargetIdList(self):
+        self.readTargetIdList()
+        with open('target_id_list.txt', 'w', newline='') as file:
+            for id in self.fundIdList:
+                file.write(id)
+                file.write('\n')
+
+    def writeData(self):
+        jsonStr = self.toJson(self.fundList)
+        self.writeJsonFile(jsonStr)
+
+    def readData(self):
+        d1 = self.toDict(self.readJsonFile())  # returning list of dicts
+        return d1
+
+    def writeFundIdList(self, fundIdList):
+        with open('fund_id_list.txt', 'w', newline='') as file:
+            for x in fundIdList:
+                file.write(x)
+                file.write('\n')
+
+    def readFundIdList(self):
+        try:
+            with open('fund_id_list.txt', 'r') as file:
+                fundIdList = []
+                for x in file.readlines():
+                    fundIdList.append(x)
+                fundIdList = [x[:-1:] for x in fundIdList]
+                return fundIdList
+        except FileNotFoundError:
+            with open('fund_id_list.txt', 'x', newline='') as file:
+                pass
 
     def toJson(self, fundList):
         jsonFundList = []
@@ -150,18 +170,20 @@ class FundScraper:
         jsonStr = json.dumps(jsonFundList, ensure_ascii=False)
         return jsonStr
 
-    def writeJsonfile(self, jsonStr):
+    def toDict(self, jsonStr):
+        j = json.loads(jsonStr)
+        return j
+
+    def writeJsonFile(self, jsonStr):
         with open('fund_list.json', 'w', encoding='UTF-8') as jsonFile:
             jsonFile.write(str(jsonStr))
 
+    def readJsonFile(self):
+        try:
+            with open('fund_list.json', 'r', encoding='UTF-8') as jsonFile:
+                jsonStr = jsonFile.read()
+                return jsonStr
+        except FileNotFoundError:
+            with open('fund_list.json', 'x', encoding='UTF-8', newline='') as file:
+                pass
 
-if __name__ == '__main__':
-    print('---Initializing driver---')
-    f = FundScraper()
-
-    #f.startFundListScraping()
-    f.startFundDetailScraping(byId=True)
-    fundList = f.getFundList()
-    jsonStr = f.toJson(fundList)
-    f.writeJsonfile(jsonStr)
-    input(Color.RED + 'stop' + Color.END)
