@@ -15,6 +15,9 @@ class FundScraper:
         self.fundIdList = []
         self.driverInitializeOrNot = False
 
+    def clear(self):
+        self.__init__()
+
     def initializeDriver(self):
         self.f1 = FundListScraper()
         self.f2 = FundDetailScraper()
