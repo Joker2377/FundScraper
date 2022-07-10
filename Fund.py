@@ -1,6 +1,3 @@
-from Color import *
-
-
 class Fund:
     def __init__(self, *args):
         if len(args) == 2:
@@ -18,31 +15,31 @@ class Fund:
         self.dividend = None
 
     def show(self):
-        print(Color.CYAN + self.id + ' ' + self.name + Color.END)
-        print(Color.PURPLE + "Info:" + Color.END)
+        print(self.id + ' ' + self.name )
+        print("Info:")
         for x in self.infoList:
             print(x)
         print('\n\n')
-        print(Color.PURPLE + "Value List:" + Color.END)
+        print("Value List:")
         for x in self.valueList:
             print(x)
         print('\n\n')
-        print(Color.PURPLE + "Earn List:" + Color.END)
+        print("Earn List:")
         for x in self.earnList:
             print(x)
         print('\n\n')
-        print(Color.PURPLE + "Configure List:" + Color.END)
+        print("Configure List:")
         for x in self.confList:
             print(x)
         print('\n\n')
-        print(Color.PURPLE + "Data List:" + Color.END)
+        print("Data List:")
         for x in self.dataList:
             print(x)
         print('\n\n')
-        print(Color.PURPLE + "Risk:" + Color.END)
+        print("Risk:")
         print(self.risk)
         print('\n\n')
-        print(Color.PURPLE + "Dividend:" + Color.END)
+        print("Dividend:")
         if isinstance(self.dividend, str):
             print(self.dividend)
         else:

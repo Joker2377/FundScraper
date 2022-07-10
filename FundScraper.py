@@ -1,6 +1,10 @@
 import json
 from FundDetailScraper import *
 from FundListScraper import *
+from openpyxl import *
+from openpyxl.styles import Font
+import io  # openpyxl和內置函數open會衝突，所以需指名使用io.open
+import time
 
 
 class FundScraper:
@@ -14,6 +18,7 @@ class FundScraper:
         self.fundList = []
         self.fundIdList = []
         self.driverInitializeOrNot = False
+        self.scrape_type = None
 
     def clear(self):
         self.__init__()
@@ -23,29 +28,26 @@ class FundScraper:
         self.f2 = FundDetailScraper()
         self.driverInitializeOrNot = True
 
-    def setTarget(self):
-        print('1. 單筆top20\n2. 定額top20\n3. 全部: ')
-        num = int(input())
-        print(Color.RED + 'Target set: ' + Color.END, end='')
+    def setTarget(self, num):
+        print('Target set: ', end='')
         if num == 1:
-            print(Color.DARKCYAN + '單筆top20' + Color.END)
+            print('單筆top20')
             self.url = self.url1
+            self.scrape_type = '單筆top20'
         elif num == 2:
-            print(Color.DARKCYAN + '定額top20' + Color.END)
+            print('定額top20')
             self.url = self.url2
+            self.scrape_type = '定額top20'
         elif num == 3:
-            print(Color.DARKCYAN + '全部' + Color.END)
+            print('全部')
             self.url = self.url3
+            self.scrape_type = '全部'
         else:
-            print(Color.RED + 'nothing' + Color.END)
+            print('nothing')
 
     def startFundListScraping(self):
         if not self.driverInitializeOrNot:
             self.initializeDriver()
-        self.setTarget()
-        if self.url is None:
-            print(Color.RED + 'Please set the target before scraping.' + Color.END)
-            self.setTarget()
         self.f1.setTargetUrl(self.url)
         self.f1.start()
         self.fundList = self.f1.getFundList()
@@ -58,13 +60,13 @@ class FundScraper:
     def startFundDetailScraping(self, **kwargs):
         if not self.driverInitializeOrNot:
             self.initializeDriver()
-        self.readTargetIdList()
+
         if not self.fundList and not self.fundIdList:
-            print(Color.RED + 'Get a fundList or fundIdList before starting \"fund detail scraping\".' + Color.END)
+            print('Get a fundList or fundIdList before starting \"fund detail scraping\".')
 
         if len(kwargs) < 1:
             if not self.fundList:
-                print(Color.RED + 'Get a fundList before starting \"fund detail scraping by fundList\".' + Color.END)
+                print('Get a fundList before starting \"fund detail scraping by fundList\".')
             for x in self.fundList:
                 id = x.getId()
                 self.f2.setTargetFund(id)
@@ -81,8 +83,6 @@ class FundScraper:
                 x.setDividend(self.f2.getDividend())
                 for info in infoList:
                     x.addInfo(info)
-            for x in self.fundList:
-                x.show()
             self.writeData()
 
         elif kwargs['byId']:
@@ -95,25 +95,6 @@ class FundScraper:
     def getFundList(self):
         return self.fundList
 
-    def readTargetIdList(self):
-        try:
-            with open('target_id_list.txt', 'r', newline='') as file:
-                fundIdList = file.readlines()
-                for x in fundIdList:
-                    x = x[:-1:]  # remove '\n'
-                    if x not in self.fundIdList:  # 避免讀入重複內容
-                        self.fundIdList.append(x)
-        except FileNotFoundError:
-            with open('target_id_list.txt', 'x', newline='') as file:
-                pass
-
-    def writeTargetIdList(self):
-        self.readTargetIdList()
-        with open('target_id_list.txt', 'w', newline='') as file:
-            for id in self.fundIdList:
-                file.write(id)
-                file.write('\n')
-
     def writeData(self):
         jsonStr = self.toJson(self.fundList)
         self.writeJsonFile(jsonStr)
@@ -123,21 +104,21 @@ class FundScraper:
         return d1
 
     def writeFundIdList(self, fundIdList):
-        with open('fund_id_list.txt', 'w', newline='') as file:
+        with io.open('fund_id_list.txt', 'w', newline='') as file:
             for x in fundIdList:
                 file.write(x)
                 file.write('\n')
 
     def readFundIdList(self):
         try:
-            with open('fund_id_list.txt', 'r') as file:
+            with io.open('fund_id_list.txt', 'r') as file:
                 fundIdList = []
                 for x in file.readlines():
                     fundIdList.append(x)
                 fundIdList = [x[:-1:] for x in fundIdList]
                 return fundIdList
         except FileNotFoundError:
-            with open('fund_id_list.txt', 'x', newline='') as file:
+            with io.open('fund_id_list.txt', 'x', newline='') as file:
                 pass
 
     def toJson(self, fundList):
@@ -178,15 +159,79 @@ class FundScraper:
         return j
 
     def writeJsonFile(self, jsonStr):
-        with open('fund_list.json', 'w', encoding='UTF-8') as jsonFile:
+        with io.open('fund_list.json', 'w', encoding='UTF-8') as jsonFile:
             jsonFile.write(str(jsonStr))
 
     def readJsonFile(self):
         try:
-            with open('fund_list.json', 'r', encoding='UTF-8') as jsonFile:
+            with io.open('fund_list.json', 'r', encoding='UTF-8') as jsonFile:
                 jsonStr = jsonFile.read()
                 return jsonStr
         except FileNotFoundError:
-            with open('fund_list.json', 'x', encoding='UTF-8', newline='') as file:
+            with io.open('fund_list.json', 'x', encoding='UTF-8', newline='') as file:
                 pass
 
+    def excelOutput(self):
+        d1 = self.readData()
+        word_dict = {'name': '基金名稱',  # 將英文資料名稱對應成中文
+                     'id': '基金代碼',
+                     'eng_name': '基金名稱(英)',
+                     'general_agent': '總代理',
+                     'company': '基金公司',
+                     'create_date': '成立日期',
+                     'fund_type': '基金類型',
+                     'register_country': '基金註冊地',
+                     'goal': '投資目標',
+                     'original_scale': '原始可發行規模(百萬)',
+                     'scale': '基金規模',
+                     'manage_institution': '保管機構',
+                     'manage_fee': '基金保管費率',
+                     'manage_fee_max': '基金管理費率(最高)',
+                     'earning_distribute': '收益分配方式',
+                     'buying_handling_fee': '申購手續費',
+                     'company_url': '公司簡介網址',
+                     'value_list': '淨值表',
+                     'earn_list': '績效表現',
+                     'configure_list': '資產配置',
+                     'industry_proportion': '行業比重',
+                     'risk_evaluate': '風險評估',
+                     'top10_shareholding': '前十大持股',
+                     'risk': '風險評等',
+                     'dividend': '配息紀錄'
+                     }
+
+        wb = Workbook()
+        for x in d1:
+            sheetName = x['id'] + ' ' + x['name']
+            for sheet in wb:  # 避免重複
+                ws = sheet
+                if ws.title == sheetName:
+                    wb.remove(wb[sheetName])
+            ws = wb.create_sheet(sheetName)
+            for key, value in x.items():
+                if type(value) is not list:  # 判斷資料是否為list
+                    tmp = [word_dict[key], value]
+                    ws.append(tmp)
+                    ws.append([])  # 空行
+                else:
+                    ws.append([word_dict[key]])
+                    for y in value:
+                        if type(y[1]) is not list:
+                            ws.append(y)
+                        else:
+                            title = y[0]
+                            y = y[1]
+                            ws.append(y)
+                    ws.append([])
+            for col in ws.iter_cols(min_row=1, max_col=5, max_row=200):  # adding styles
+                for cell in col:
+                    if str(cell.value) in word_dict.values():
+                        ws.cell(row=cell.row, column=cell.column).font = Font(color='08ba17',
+                                                                              bold=True)  # change title color
+                    elif '▲' in str(cell.value):
+                        cell.font = Font(color='ab1717')
+                    elif '▼' in str(cell.value):
+                        cell.font = Font(color='3d9414')
+        re = time.localtime(time.time())
+
+        wb.save(f'{re.tm_mon}{re.tm_mday}{re.tm_hour}{re.tm_sec}{re.tm_wday}_{self.scrape_type}_scrape_result.xlsx')

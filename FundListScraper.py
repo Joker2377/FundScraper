@@ -40,7 +40,7 @@ class FundListNetProcess:
                 return funds
             except selenium.common.exceptions.NoSuchElementException:
                 self.escape()  # 關閉廣告
-                print(Color.RED + '---Waiting---' + Color.END)
+                print('---Waiting---')
                 time.sleep(1)
                 self.driver.refresh()
                 continue
@@ -68,14 +68,14 @@ class FundListNetProcess:
                 else:
                     return False
             except selenium.common.exceptions.ElementClickInterceptedException:
-                print(Color.RED + '---Waiting---' + Color.END)
+                print('---Waiting---')
                 times += 1
                 if times > 5:
                     self.escape()
                 continue
             except selenium.common.exceptions.TimeoutException:
                 self.driver.refresh()
-                print(Color.RED + '---Waiting---' + Color.END)
+                print('---Waiting---')
                 time.sleep(3)
                 continue
 
@@ -105,15 +105,12 @@ class FundListScraper:
         oldFunds = []
         while funds:
             system('cls')
-            print(f"time passed: {round(time.time() - startTime)}")
             funds = []
             funds = net.getFundInfo()
             if oldFunds == funds:
                 continue
             oldFunds = funds
-            for fund in funds:
-                print(f"{funds.index(fund) + 1}. {fund[0]} {fund[1]}")
-            print(Color.BOLD + "---Processing---" + Color.END)
+            print("---Processing---")
             newFunds = []
             for x in funds:
                 f = Fund(x[0], x[1])

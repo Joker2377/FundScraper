@@ -6,8 +6,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from os import system
 
-from Color import *
-
 
 class FundDetailNetProcess:
     def __init__(self, url):
@@ -47,7 +45,7 @@ class FundDetailNetProcess:
                 self.escape()
                 continue
             except selenium.common.exceptions.NoSuchElementException:
-                print(Color.RED + '---Waiting---' + Color.END)
+                print('---Waiting---')
                 time.sleep(1)
                 self.driver.refresh()
                 continue
@@ -89,7 +87,7 @@ class FundDetailNetProcess:
                 self.escape()
                 continue
             except selenium.common.exceptions.NoSuchElementException:
-                print(Color.RED + '---Waiting---' + Color.END)
+                print('---Waiting---')
                 time.sleep(1)
                 self.driver.refresh()
                 continue
@@ -188,7 +186,7 @@ class FundDetailNetProcess:
                 self.escape()
                 continue
             except selenium.common.exceptions.NoSuchElementException:
-                print(Color.RED + '---Waiting---' + Color.END)
+                print('---Waiting---')
                 time.sleep(1)
                 self.driver.refresh()
                 continue
@@ -210,7 +208,7 @@ class FundDetailNetProcess:
                 self.escape()
                 continue
             except selenium.common.exceptions.NoSuchElementException:
-                print(Color.RED + '---Waiting---' + Color.END)
+                print('---Waiting---')
                 time.sleep(1)
                 self.driver.refresh()
                 continue
@@ -248,7 +246,7 @@ class FundDetailNetProcess:
                 self.escape()
                 continue
             except selenium.common.exceptions.NoSuchElementException:
-                print(Color.RED + '---Waiting---' + Color.END)
+                print('---Waiting---')
                 time.sleep(3)
                 continue
             except selenium.common.exceptions.TimeoutException:
@@ -294,7 +292,7 @@ class FundDetailScraper:  # earnList not added
         self.dataList = self.net.getFundConfigure()[1]
         self.risk = self.net.getFundRisk()
         self.dividend = self.net.getFundDividend()
-        print(f"{Color.GREEN}---Data received---{Color.END}{self.id}{self.infoList[0]}")
+        print(f"---Data received---{self.id}{self.infoList[0]}", end='')
 
     def getInfoList(self):
         return self.infoList
