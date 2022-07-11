@@ -62,7 +62,7 @@ class FundScraper:
             self.initializeDriver()
 
         if not self.fundList and not self.fundIdList:
-            print('Get a fundList or fundIdList before starting \"fund detail scraping\".')
+            self.fundIdList = self.readFundIdList()
 
         if len(kwargs) < 1:
             if not self.fundList:
@@ -203,6 +203,8 @@ class FundScraper:
         wb = Workbook()
         for x in d1:
             sheetName = x['id'] + ' ' + x['name']
+            if len(sheetName) > 31:
+                sheetName = sheetName[:31:]
             for sheet in wb:  # 避免重複
                 ws = sheet
                 if ws.title == sheetName:
@@ -234,4 +236,4 @@ class FundScraper:
                         cell.font = Font(color='3d9414')
         re = time.localtime(time.time())
 
-        wb.save(f'{re.tm_mon}{re.tm_mday}{re.tm_hour}{re.tm_sec}{re.tm_wday}_{self.scrape_type}_scrape_result.xlsx')
+        wb.save(f'{re.tm_wday}{re.tm_min}{re.tm_sec}_{self.scrape_type}_result.xlsx')
