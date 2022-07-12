@@ -14,39 +14,6 @@ class Fund:
         self.risk = None
         self.dividend = None
 
-    def show(self):
-        print(self.id + ' ' + self.name )
-        print("Info:")
-        for x in self.infoList:
-            print(x)
-        print('\n\n')
-        print("Value List:")
-        for x in self.valueList:
-            print(x)
-        print('\n\n')
-        print("Earn List:")
-        for x in self.earnList:
-            print(x)
-        print('\n\n')
-        print("Configure List:")
-        for x in self.confList:
-            print(x)
-        print('\n\n')
-        print("Data List:")
-        for x in self.dataList:
-            print(x)
-        print('\n\n')
-        print("Risk:")
-        print(self.risk)
-        print('\n\n')
-        print("Dividend:")
-        if isinstance(self.dividend, str):
-            print(self.dividend)
-        else:
-            for x in self.dividend:
-                print(x)
-        print('-----------------------------------------------------------')
-
     def addInfo(self, *args):
         for x in args:
             self.infoList.append(x)

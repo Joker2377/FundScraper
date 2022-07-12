@@ -9,6 +9,7 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QTextCursor
 
 
 class Ui_MainWindow(object):
@@ -71,5 +72,10 @@ class Ui_MainWindow(object):
         self.label_2.setText(_translate("MainWindow", "目標:"))
         self.pushButton_fundList.setText(_translate("MainWindow", "開始!"))
         self.label_3.setText(_translate("MainWindow", "取得基金資料"))
-        self.label_5.setText(_translate("MainWindow", "Terminal:"))
+        self.label_5.setText(_translate("MainWindow", "Processes:"))
+        cursor = self.textEdit.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        self.textEdit.setTextCursor(cursor)
+        self.textEdit.ensureCursorVisible()
+
 
